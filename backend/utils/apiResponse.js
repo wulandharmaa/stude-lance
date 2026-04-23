@@ -1,12 +1,15 @@
-export function ok(message, data = null, meta = null, status = 200) {
-  const payload = { message };
-  if (data !== null) payload.data = data;
-  if (meta !== null) payload.meta = meta;
-  return Response.json(payload, { status });
+import { NextResponse } from 'next/server';
+
+export function success(message, data = null, status = 200) {
+  return NextResponse.json(
+    { success: true, data, message },
+    { status }
+  );
 }
 
-export function fail(message, status = 500, error = null) {
-  const payload = { message };
-  if (error) payload.error = error;
-  return Response.json(payload, { status });
+export function error(message, status = 500, data = null) {
+  return NextResponse.json(
+    { success: false, data, message },
+    { status }
+  );
 }
