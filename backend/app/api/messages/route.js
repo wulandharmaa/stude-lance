@@ -1,124 +1,51 @@
-import { NextResponse } from 'next/server';
 import supabase from '@/utils/supabaseClient';
-import { isValidUuid, isNonEmptyString } from '@/utils/validators';
+import { requireAuth, requireActiveAccount } from '@/utils/authorization';
+import { success, error } from '@/utils/apiResponse';
 import { ApiError } from '@/utils/apiError';
-import { requireAuth } from '@/utils/authorization';
-
-function parsePositiveInt(value, fallback) {
-  const n = Number(value);
-  return Number.isInteger(n) && n > 0 ? n : fallback;
-}
-
-async function ensureProjectMember(projectId, userId) {
-  const { data } = await supabase
-    .from('projects')
-    .select('id')
-    .eq('id', projectId)
-    .or(`client_id.eq.${userId},student_id.eq.${userId}`)
-    .maybeSingle();
-
-  return !!data;
-}
+import { isValidUuid } from '@/utils/validators';
+import { assertProjectMember } from '@/utils/accessControl';
 
 export async function GET(request) {
   try {
-    const { authUser } = await requireAuth(request);
+    const { authUser, profile } = await requireAuth(request);
+    requireActiveAccount(profile);
+
     const { searchParams } = new URL(request.url);
-
     const projectId = searchParams.get('project_id');
-    const q = searchParams.get('q')?.trim() || '';
-    const page = parsePositiveInt(searchParams.get('page'), 1);
-    const limit = Math.min(parsePositiveInt(searchParams.get('limit'), 20), 100);
+    if (!isValidUuid(projectId)) return error('project_id wajib UUID valid.', 400);
 
-    if (!isValidUuid(projectId)) {
-      return NextResponse.json(
-        { message: 'project_id wajib UUID yang valid.' },
-        { status: 400 }
-      );
-    }
+    await assertProjectMember(projectId, authUser.id);
 
-    const isMember = await ensureProjectMember(projectId, authUser.id);
-    if (!isMember) {
-      return NextResponse.json(
-        { message: 'Akses ditolak untuk project ini.' },
-        { status: 403 }
-      );
-    }
-
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
-
-    let query = supabase
+    const { data, error: qError } = await supabase
       .from('messages')
-      .select('id, project_id, sender_id, content, created_at', { count: 'exact' })
+      .select('id, project_id, sender_id, content, created_at')
       .eq('project_id', projectId)
       .order('created_at', { ascending: true });
 
-    if (q) query = query.ilike('content', `%${q}%`);
-
-    const { data, error, count } = await query.range(from, to);
-
-    if (error) {
-      return NextResponse.json(
-        { message: 'Gagal mengambil data messages', error: error.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        message: 'Berhasil mengambil data messages',
-        data,
-        meta: {
-          page,
-          limit,
-          total: count || 0,
-          total_pages: Math.ceil((count || 0) / limit),
-        },
-      },
-      { status: 200 }
-    );
+    if (qError) return error('Gagal mengambil messages', 500, qError.message);
+    return success('Berhasil mengambil messages', data, 200);
   } catch (err) {
-    if (err instanceof ApiError) {
-      return NextResponse.json({ message: err.message }, { status: err.status });
-    }
-
-    return NextResponse.json(
-      { message: 'Terjadi kesalahan server', error: err.message },
-      { status: 500 }
-    );
+    if (err instanceof ApiError) return error(err.message, err.status);
+    return error('Terjadi kesalahan server', 500, err.message);
   }
 }
 
 export async function POST(request) {
   try {
-    const { authUser } = await requireAuth(request);
+    const { authUser, profile } = await requireAuth(request);
+    requireActiveAccount(profile);
+
     const body = await request.json();
     const { project_id, content } = body || {};
 
-    if (!isValidUuid(project_id)) {
-      return NextResponse.json(
-        { message: 'project_id wajib UUID yang valid.' },
-        { status: 400 }
-      );
+    if (!isValidUuid(project_id)) return error('project_id wajib UUID valid.', 400);
+    if (!content || typeof content !== 'string' || content.trim().length < 1) {
+      return error('content wajib diisi.', 400);
     }
 
-    if (!isNonEmptyString(content, 1)) {
-      return NextResponse.json(
-        { message: 'content tidak boleh kosong.' },
-        { status: 400 }
-      );
-    }
+    await assertProjectMember(project_id, authUser.id);
 
-    const isMember = await ensureProjectMember(project_id, authUser.id);
-    if (!isMember) {
-      return NextResponse.json(
-        { message: 'Akses ditolak untuk project ini.' },
-        { status: 403 }
-      );
-    }
-
-    const { data, error } = await supabase
+    const { data, error: insError } = await supabase
       .from('messages')
       .insert({
         project_id,
@@ -128,25 +55,10 @@ export async function POST(request) {
       .select('id, project_id, sender_id, content, created_at')
       .single();
 
-    if (error) {
-      return NextResponse.json(
-        { message: 'Gagal membuat message', error: error.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(
-      { message: 'Message berhasil dibuat', data },
-      { status: 201 }
-    );
+    if (insError) return error('Gagal mengirim message', 500, insError.message);
+    return success('Message berhasil dikirim', data, 201);
   } catch (err) {
-    if (err instanceof ApiError) {
-      return NextResponse.json({ message: err.message }, { status: err.status });
-    }
-
-    return NextResponse.json(
-      { message: 'Terjadi kesalahan server', error: err.message },
-      { status: 500 }
-    );
+    if (err instanceof ApiError) return error(err.message, err.status);
+    return error('Terjadi kesalahan server', 500, err.message);
   }
 }
