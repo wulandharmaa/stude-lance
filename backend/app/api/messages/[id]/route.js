@@ -1,23 +1,17 @@
 import { NextResponse } from 'next/server';
 import supabase from '@/utils/supabaseClient';
 import { isValidUuid } from '@/utils/validators';
+import { ApiError } from '@/utils/apiError';
+import { requireAuth } from '@/utils/authorization';
 
 export async function DELETE(request, { params }) {
   try {
+    const { authUser } = await requireAuth(request);
     const { id } = params;
-    const { searchParams } = new URL(request.url);
-    const senderId = searchParams.get('sender_id');
 
     if (!isValidUuid(id)) {
       return NextResponse.json(
         { message: 'id message wajib UUID yang valid.' },
-        { status: 400 }
-      );
-    }
-
-    if (!isValidUuid(senderId)) {
-      return NextResponse.json(
-        { message: 'sender_id wajib UUID yang valid (query parameter).' },
         { status: 400 }
       );
     }
@@ -35,8 +29,7 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    // Soft guard: hanya pengirim yang boleh hapus
-    if (message.sender_id !== senderId) {
+    if (message.sender_id !== authUser.id) {
       return NextResponse.json(
         { message: 'Anda tidak berhak menghapus message ini.' },
         { status: 403 }
@@ -62,6 +55,10 @@ export async function DELETE(request, { params }) {
       { status: 200 }
     );
   } catch (err) {
+    if (err instanceof ApiError) {
+      return NextResponse.json({ message: err.message }, { status: err.status });
+    }
+
     return NextResponse.json(
       { message: 'Terjadi kesalahan server', error: err.message },
       { status: 500 }

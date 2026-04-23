@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import supabase from '@/utils/supabaseClient';
+import { ApiError } from '@/utils/apiError';
+import { requireAuth, requireRole } from '@/utils/authorization';
 
 const PROJECT_STATUS = ['open', 'in_progress', 'completed'];
 const UUID_REGEX =
@@ -16,32 +18,17 @@ function parsePositiveInt(value, fallback) {
 
 export async function GET(request) {
   try {
+    const { authUser } = await requireAuth(request);
     const { searchParams } = new URL(request.url);
 
     const page = parsePositiveInt(searchParams.get('page'), 1);
     const limit = Math.min(parsePositiveInt(searchParams.get('limit'), 10), 100);
     const q = searchParams.get('q')?.trim() || '';
     const status = searchParams.get('status');
-    const clientId = searchParams.get('client_id');
-    const studentId = searchParams.get('student_id');
 
     if (status && !PROJECT_STATUS.includes(status)) {
       return NextResponse.json(
         { message: `status harus salah satu: ${PROJECT_STATUS.join(', ')}` },
-        { status: 400 }
-      );
-    }
-
-    if (clientId && !isValidUuid(clientId)) {
-      return NextResponse.json(
-        { message: 'client_id wajib UUID yang valid.' },
-        { status: 400 }
-      );
-    }
-
-    if (studentId && !isValidUuid(studentId)) {
-      return NextResponse.json(
-        { message: 'student_id wajib UUID yang valid.' },
         { status: 400 }
       );
     }
@@ -70,12 +57,11 @@ export async function GET(request) {
       `,
         { count: 'exact' }
       )
+      .or(`client_id.eq.${authUser.id},student_id.eq.${authUser.id}`)
       .order('created_at', { ascending: false });
 
     if (q) query = query.ilike('title', `%${q}%`);
     if (status) query = query.eq('status', status);
-    if (clientId) query = query.eq('client_id', clientId);
-    if (studentId) query = query.eq('student_id', studentId);
 
     const { data, error, count } = await query.range(from, to);
 
@@ -100,6 +86,10 @@ export async function GET(request) {
       { status: 200 }
     );
   } catch (err) {
+    if (err instanceof ApiError) {
+      return NextResponse.json({ message: err.message }, { status: err.status });
+    }
+
     return NextResponse.json(
       { message: 'Terjadi kesalahan server', error: err.message },
       { status: 500 }
@@ -109,15 +99,11 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const { client_id, student_id = null, title, status = 'open' } = body || {};
+    const { authUser, profile } = await requireAuth(request);
+    requireRole(profile, ['client']);
 
-    if (!isValidUuid(client_id)) {
-      return NextResponse.json(
-        { message: 'client_id wajib UUID yang valid.' },
-        { status: 400 }
-      );
-    }
+    const body = await request.json();
+    const { student_id = null, title } = body || {};
 
     if (student_id !== null && !isValidUuid(student_id)) {
       return NextResponse.json(
@@ -133,18 +119,11 @@ export async function POST(request) {
       );
     }
 
-    if (!PROJECT_STATUS.includes(status)) {
-      return NextResponse.json(
-        { message: `status harus salah satu: ${PROJECT_STATUS.join(', ')}` },
-        { status: 400 }
-      );
-    }
-
     const payload = {
-      client_id,
+      client_id: authUser.id,
       student_id,
       title: title.trim(),
-      status,
+      status: 'open',
     };
 
     const { data, error } = await supabase
@@ -165,6 +144,10 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (err) {
+    if (err instanceof ApiError) {
+      return NextResponse.json({ message: err.message }, { status: err.status });
+    }
+
     return NextResponse.json(
       { message: 'Terjadi kesalahan server', error: err.message },
       { status: 500 }
