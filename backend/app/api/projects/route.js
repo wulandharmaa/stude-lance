@@ -9,16 +9,56 @@ function isValidUuid(value) {
   return typeof value === 'string' && UUID_REGEX.test(value);
 }
 
-export async function GET() {
+function parsePositiveInt(value, fallback) {
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : fallback;
+}
+
+export async function GET(request) {
   try {
-    const { data, error } = await supabase
+    const { searchParams } = new URL(request.url);
+
+    const page = parsePositiveInt(searchParams.get('page'), 1);
+    const limit = Math.min(parsePositiveInt(searchParams.get('limit'), 10), 100);
+    const q = searchParams.get('q')?.trim() || '';
+    const status = searchParams.get('status');
+    const clientId = searchParams.get('client_id');
+    const studentId = searchParams.get('student_id');
+
+    if (status && !PROJECT_STATUS.includes(status)) {
+      return NextResponse.json(
+        { message: `status harus salah satu: ${PROJECT_STATUS.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    if (clientId && !isValidUuid(clientId)) {
+      return NextResponse.json(
+        { message: 'client_id wajib UUID yang valid.' },
+        { status: 400 }
+      );
+    }
+
+    if (studentId && !isValidUuid(studentId)) {
+      return NextResponse.json(
+        { message: 'student_id wajib UUID yang valid.' },
+        { status: 400 }
+      );
+    }
+
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let query = supabase
       .from('projects')
-      .select(`
+      .select(
+        `
         id,
         client_id,
         student_id,
         title,
         status,
+        created_at,
         milestones (
           id,
           project_id,
@@ -27,8 +67,17 @@ export async function GET() {
           due_date,
           status
         )
-      `)
+      `,
+        { count: 'exact' }
+      )
       .order('created_at', { ascending: false });
+
+    if (q) query = query.ilike('title', `%${q}%`);
+    if (status) query = query.eq('status', status);
+    if (clientId) query = query.eq('client_id', clientId);
+    if (studentId) query = query.eq('student_id', studentId);
+
+    const { data, error, count } = await query.range(from, to);
 
     if (error) {
       return NextResponse.json(
@@ -38,7 +87,16 @@ export async function GET() {
     }
 
     return NextResponse.json(
-      { message: 'Berhasil mengambil data projects', data },
+      {
+        message: 'Berhasil mengambil data projects',
+        data,
+        meta: {
+          page,
+          limit,
+          total: count || 0,
+          total_pages: Math.ceil((count || 0) / limit),
+        },
+      },
       { status: 200 }
     );
   } catch (err) {

@@ -2,10 +2,20 @@ import { NextResponse } from 'next/server';
 import supabase from '@/utils/supabaseClient';
 import { isValidUuid, isNonEmptyString } from '@/utils/validators';
 
+function parsePositiveInt(value, fallback) {
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : fallback;
+}
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
+
     const projectId = searchParams.get('project_id');
+    const senderId = searchParams.get('sender_id');
+    const q = searchParams.get('q')?.trim() || '';
+    const page = parsePositiveInt(searchParams.get('page'), 1);
+    const limit = Math.min(parsePositiveInt(searchParams.get('limit'), 20), 100);
 
     if (!isValidUuid(projectId)) {
       return NextResponse.json(
@@ -14,11 +24,26 @@ export async function GET(request) {
       );
     }
 
-    const { data, error } = await supabase
+    if (senderId && !isValidUuid(senderId)) {
+      return NextResponse.json(
+        { message: 'sender_id wajib UUID yang valid.' },
+        { status: 400 }
+      );
+    }
+
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let query = supabase
       .from('messages')
-      .select('id, project_id, sender_id, content, created_at')
+      .select('id, project_id, sender_id, content, created_at', { count: 'exact' })
       .eq('project_id', projectId)
       .order('created_at', { ascending: true });
+
+    if (senderId) query = query.eq('sender_id', senderId);
+    if (q) query = query.ilike('content', `%${q}%`);
+
+    const { data, error, count } = await query.range(from, to);
 
     if (error) {
       return NextResponse.json(
@@ -28,7 +53,16 @@ export async function GET(request) {
     }
 
     return NextResponse.json(
-      { message: 'Berhasil mengambil data messages', data },
+      {
+        message: 'Berhasil mengambil data messages',
+        data,
+        meta: {
+          page,
+          limit,
+          total: count || 0,
+          total_pages: Math.ceil((count || 0) / limit),
+        },
+      },
       { status: 200 }
     );
   } catch (err) {

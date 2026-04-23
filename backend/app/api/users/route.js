@@ -4,14 +4,29 @@ import { isNonEmptyString, isBoolean } from '@/utils/validators';
 
 const USER_ROLES = ['student', 'client'];
 
+function parsePositiveInt(value, fallback) {
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : fallback;
+}
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
+
     const role = searchParams.get('role');
+    const verified = searchParams.get('verified');
+    const q = searchParams.get('q')?.trim() || '';
+    const page = parsePositiveInt(searchParams.get('page'), 1);
+    const limit = Math.min(parsePositiveInt(searchParams.get('limit'), 10), 100);
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
 
     let query = supabase
       .from('users')
-      .select('id, email, full_name, role, ktm_image_url, is_student_verified, created_at')
+      .select(
+        'id, email, full_name, role, ktm_image_url, is_student_verified, created_at',
+        { count: 'exact' }
+      )
       .order('created_at', { ascending: false });
 
     if (role) {
@@ -24,7 +39,21 @@ export async function GET(request) {
       query = query.eq('role', role);
     }
 
-    const { data, error } = await query;
+    if (verified !== null) {
+      if (verified !== 'true' && verified !== 'false') {
+        return NextResponse.json(
+          { message: 'verified harus bernilai true atau false.' },
+          { status: 400 }
+        );
+      }
+      query = query.eq('is_student_verified', verified === 'true');
+    }
+
+    if (q) {
+      query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
+    }
+
+    const { data, error, count } = await query.range(from, to);
 
     if (error) {
       return NextResponse.json(
@@ -34,7 +63,16 @@ export async function GET(request) {
     }
 
     return NextResponse.json(
-      { message: 'Berhasil mengambil data users', data },
+      {
+        message: 'Berhasil mengambil data users',
+        data,
+        meta: {
+          page,
+          limit,
+          total: count || 0,
+          total_pages: Math.ceil((count || 0) / limit),
+        },
+      },
       { status: 200 }
     );
   } catch (err) {
@@ -57,10 +95,7 @@ export async function POST(request) {
     } = body || {};
 
     if (!isNonEmptyString(email, 5) || !email.includes('@')) {
-      return NextResponse.json(
-        { message: 'email wajib valid.' },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: 'email wajib valid.' }, { status: 400 });
     }
 
     if (!isNonEmptyString(full_name, 3)) {
