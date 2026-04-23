@@ -1,32 +1,23 @@
 import { NextResponse } from 'next/server';
 import supabase from '@/utils/supabaseClient';
 import { isValidUuid } from '@/utils/validators';
+import { requireAuth, requireRole } from '@/utils/authorization';
+import { ApiError } from '@/utils/apiError';
+import { assertMilestoneProjectClient } from '@/utils/accessControl';
 
 export async function DELETE(request, { params }) {
   try {
+    const { authUser, profile } = await requireAuth(request);
+    requireRole(profile, ['client']);
+
     const { id } = params;
 
     if (!isValidUuid(id)) {
-      return NextResponse.json(
-        { message: 'id milestone wajib UUID yang valid.' },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: 'id milestone wajib UUID yang valid.' }, { status: 400 });
     }
 
-    const { data: milestone, error: findError } = await supabase
-      .from('milestones')
-      .select('id, status, title')
-      .eq('id', id)
-      .single();
+    const { milestone } = await assertMilestoneProjectClient(id, authUser.id);
 
-    if (findError) {
-      return NextResponse.json(
-        { message: 'Milestone tidak ditemukan', error: findError.message },
-        { status: 404 }
-      );
-    }
-
-    // Soft guard: milestone approved tidak boleh dihapus
     if (milestone.status === 'approved') {
       return NextResponse.json(
         { message: 'Milestone dengan status approved tidak boleh dihapus.' },
@@ -34,7 +25,6 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    // Soft guard: jika sudah ada payment paid, block delete
     const { data: paidPayment } = await supabase
       .from('payments')
       .select('id')
@@ -58,20 +48,14 @@ export async function DELETE(request, { params }) {
       .single();
 
     if (error) {
-      return NextResponse.json(
-        { message: 'Gagal menghapus milestone', error: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ message: 'Gagal menghapus milestone', error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { message: 'Milestone berhasil dihapus', data },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: 'Milestone berhasil dihapus', data }, { status: 200 });
   } catch (err) {
-    return NextResponse.json(
-      { message: 'Terjadi kesalahan server', error: err.message },
-      { status: 500 }
-    );
+    if (err instanceof ApiError) {
+      return NextResponse.json({ message: err.message }, { status: err.status });
+    }
+    return NextResponse.json({ message: 'Terjadi kesalahan server', error: err.message }, { status: 500 });
   }
 }
