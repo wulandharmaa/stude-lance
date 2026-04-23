@@ -1,45 +1,27 @@
-import supabase from '@/utils/supabaseClient';
+import supabaseAdmin from '@/utils/supabaseAdmin';
+import { ApiError } from '@/utils/apiError';
 
-const KTM_BUCKET = 'ktm-images';
+const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_SIZE = 5 * 1024 * 1024;
 
-export async function uploadKtmImage({ userId, file }) {
-  if (!userId) {
-    throw new Error('userId wajib diisi.');
-  }
+export async function uploadKtmImage(file, userId) {
+  if (!file) throw new ApiError(400, 'File KTM wajib diunggah.');
+  if (!ALLOWED_MIME.includes(file.type)) throw new ApiError(400, 'Format file harus jpg/png/webp.');
+  if (file.size > MAX_SIZE) throw new ApiError(400, 'Ukuran file maksimal 5MB.');
 
-  if (!file) {
-    throw new Error('File KTM wajib diisi.');
-  }
-
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-  if (!allowedTypes.includes(file.type)) {
-    throw new Error('Format file tidak valid. Gunakan JPG, PNG, atau WEBP.');
-  }
-
-  const ext = file.name?.split('.').pop() || 'jpg';
-  const filePath = `${userId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
-
+  const ext = file.name?.split('.').pop()?.toLowerCase() || 'jpg';
+  const path = `${userId}/${Date.now()}.${ext}`;
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  const { error: uploadError } = await supabase.storage
-    .from(KTM_BUCKET)
-    .upload(filePath, buffer, {
+  const { error } = await supabaseAdmin.storage
+    .from('ktm-images')
+    .upload(path, buffer, {
       contentType: file.type,
       upsert: false,
     });
 
-  if (uploadError) {
-    throw new Error(`Upload KTM gagal: ${uploadError.message}`);
-  }
+  if (error) throw new ApiError(500, `Gagal upload KTM: ${error.message}`);
 
-  const { data: publicUrlData } = supabase.storage
-    .from(KTM_BUCKET)
-    .getPublicUrl(filePath);
-
-  return {
-    bucket: KTM_BUCKET,
-    path: filePath,
-    publicUrl: publicUrlData.publicUrl,
-  };
+  return path; // bucket private: simpan path
 }
