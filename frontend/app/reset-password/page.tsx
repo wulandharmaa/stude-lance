@@ -41,9 +41,12 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
+    <main className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardHeader><CardTitle>Reset Password</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Reset Password</CardTitle>
+          <p className="text-sm text-muted-foreground">Masukkan password baru minimal 8 karakter.</p>
+        </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             <Input type="password" placeholder="Password baru" value={password} onChange={(e) => setPassword(e.target.value)} required />

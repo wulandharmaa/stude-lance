@@ -20,10 +20,26 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       }
       setChecking(false);
     };
+
     check();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        setAllowed(false);
+        router.replace("/login");
+      } else {
+        setAllowed(true);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [router]);
 
-  if (checking) return <p className="p-6">Checking session...</p>;
+  if (checking) return <p className="p-6 text-sm text-muted-foreground">Checking session...</p>;
   if (!allowed) return null;
 
   return <>{children}</>;

@@ -3,6 +3,7 @@ import { requireAuth, requireAdmin } from '@/utils/authorization';
 import { success, error } from '@/utils/apiResponse';
 import { ApiError } from '@/utils/apiError';
 import { isValidUuid } from '@/utils/validators';
+import { writeAdminAudit } from '@/utils/adminAudit';
 
 export async function PATCH(request, { params }) {
   try {
@@ -19,6 +20,16 @@ export async function PATCH(request, { params }) {
       .single();
 
     if (findError || !verif) return error('Data verifikasi tidak ditemukan.', 404);
+    if (verif.status !== 'pending') return error('Verifikasi hanya bisa di-approve dari status pending.', 409);
+
+    const { data: targetUser, error: userErr } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('id', verif.user_id)
+      .single();
+
+    if (userErr || !targetUser) return error('User target tidak ditemukan.', 404);
+    if (targetUser.role !== 'student') return error('Approve verifikasi KTM hanya untuk role student.', 409);
 
     const now = new Date().toISOString();
 
@@ -37,7 +48,7 @@ export async function PATCH(request, { params }) {
 
     if (updError) return error('Gagal approve verifikasi.', 500, updError.message);
 
-    await supabase
+    const { error: userUpdateErr } = await supabase
       .from('users')
       .update({
         is_student_verified: true,
@@ -48,6 +59,16 @@ export async function PATCH(request, { params }) {
         approved_at: now,
       })
       .eq('id', verif.user_id);
+
+    if (userUpdateErr) return error('Verifikasi ter-approve, tapi update user gagal.', 500, userUpdateErr.message);
+
+    await writeAdminAudit({
+      adminId: authUser.id,
+      action: 'verification_approved',
+      targetType: 'student_verification',
+      targetId: id,
+      payload: { user_id: verif.user_id },
+    });
 
     return success('Verifikasi mahasiswa disetujui.', data, 200);
   } catch (err) {

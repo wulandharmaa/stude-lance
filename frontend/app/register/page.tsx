@@ -38,9 +38,12 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
+    <main className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardHeader><CardTitle>Register</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Daftar Akun</CardTitle>
+          <p className="text-sm text-muted-foreground">Buat akun student atau client.</p>
+        </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             <Input placeholder="Nama lengkap" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
@@ -56,6 +59,9 @@ export default function RegisterPage() {
 
             <p className="text-sm">
               Sudah punya akun? <Link href="/login" className="underline">Login</Link>
+            </p>
+            <p className="text-center text-xs text-muted-foreground">
+              Kembali ke <Link href="/" className="underline">landing page</Link>
             </p>
           </form>
         </CardContent>

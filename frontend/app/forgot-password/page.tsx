@@ -30,9 +30,12 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
+    <main className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardHeader><CardTitle>Lupa Password</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Lupa Password</CardTitle>
+          <p className="text-sm text-muted-foreground">Kami akan kirim tautan reset ke email Anda.</p>
+        </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />

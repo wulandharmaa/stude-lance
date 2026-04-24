@@ -32,9 +32,12 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
+    <main className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardHeader><CardTitle>Login</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Masuk</CardTitle>
+          <p className="text-sm text-muted-foreground">Lanjutkan ke dashboard StudeLance.</p>
+        </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -47,6 +50,9 @@ export default function LoginPage() {
               <Link href="/forgot-password" className="underline">Lupa password?</Link>
               <Link href="/register" className="underline">Belum punya akun?</Link>
             </div>
+            <p className="text-center text-xs text-muted-foreground">
+              Kembali ke <Link href="/" className="underline">landing page</Link>
+            </p>
           </form>
         </CardContent>
       </Card>

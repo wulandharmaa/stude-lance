@@ -3,6 +3,7 @@ import { requireAuth, requireAdmin } from '@/utils/authorization';
 import { success, error } from '@/utils/apiResponse';
 import { ApiError } from '@/utils/apiError';
 import { isValidUuid } from '@/utils/validators';
+import { writeAdminAudit } from '@/utils/adminAudit';
 
 export async function PATCH(request, { params }) {
   try {
@@ -14,15 +15,18 @@ export async function PATCH(request, { params }) {
 
     const body = await request.json();
     const reason = (body?.reason || '').trim();
-    if (!reason) return error('reason wajib diisi.', 400);
+    if (reason.length < 5 || reason.length > 255) {
+      return error('reason wajib 5-255 karakter.', 400);
+    }
 
     const { data: verif, error: findError } = await supabase
       .from('student_verifications')
-      .select('id, user_id')
+      .select('id, user_id, status')
       .eq('id', id)
       .single();
 
     if (findError || !verif) return error('Data verifikasi tidak ditemukan.', 404);
+    if (verif.status !== 'pending') return error('Verifikasi hanya bisa di-reject dari status pending.', 409);
 
     const now = new Date().toISOString();
 
@@ -41,7 +45,7 @@ export async function PATCH(request, { params }) {
 
     if (updError) return error('Gagal reject verifikasi.', 500, updError.message);
 
-    await supabase
+    const { error: userUpdateErr } = await supabase
       .from('users')
       .update({
         is_student_verified: false,
@@ -52,6 +56,16 @@ export async function PATCH(request, { params }) {
         approved_at: now,
       })
       .eq('id', verif.user_id);
+
+    if (userUpdateErr) return error('Verifikasi ter-reject, tapi update user gagal.', 500, userUpdateErr.message);
+
+    await writeAdminAudit({
+      adminId: authUser.id,
+      action: 'verification_rejected',
+      targetType: 'student_verification',
+      targetId: id,
+      payload: { user_id: verif.user_id, reason },
+    });
 
     return success('Verifikasi mahasiswa ditolak.', data, 200);
   } catch (err) {
