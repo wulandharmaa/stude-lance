@@ -17,7 +17,26 @@ export async function getAuthContext(request) {
 
   const { data: profile } = await supabaseAdmin
     .from('users')
-    .select('id, email, full_name, role, is_student_verified, ktm_image_url')
+    .select(`
+      id,
+      email,
+      full_name,
+      role,
+      city,
+      university_name,
+      major,
+      about,
+      skills,
+      avatar_url,
+      email_verified_at,
+      is_active,
+      account_status,
+      account_rejection_reason,
+      approved_by,
+      approved_at,
+      is_student_verified,
+      ktm_image_url
+    `)
     .eq('id', data.user.id)
     .maybeSingle();
 

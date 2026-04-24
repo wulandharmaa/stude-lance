@@ -1,122 +1,124 @@
 import Link from "next/link";
-import { BadgeCheck, BriefcaseBusiness, ShieldCheck, Workflow } from "lucide-react";
-import LandingMenu from "@/components/layout/LandingMenu";
-import LandingSupport from "@/components/layout/LandingSupport";
+import { ArrowRight, BadgeCheck, CalendarDays, MessagesSquare, ShieldCheck, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const features = [
   {
-    title: "Akun Mahasiswa Terverifikasi",
-    description: "Verifikasi KTM dan approval admin sebelum mahasiswa aktif mengambil project.",
     icon: ShieldCheck,
+    title: "Manual KTM Verification",
+    description: "Mahasiswa diverifikasi admin lebih dulu agar klien bekerja dengan talenta yang lebih kredibel.",
   },
   {
-    title: "Project Matching Cepat",
-    description: "Client bisa membuka project, memilih student, dan memantau progress dengan jelas.",
-    icon: BriefcaseBusiness,
+    icon: CalendarDays,
+    title: "Academic-Sync Calendar",
+    description: "Kelas, ujian, dan deadline proyek tampil dalam satu ritme kerja yang realistis.",
   },
   {
-    title: "Workflow Milestone",
-    description: "Setiap project dipecah menjadi milestone agar scope dan pembayaran lebih aman.",
-    icon: Workflow,
+    icon: WalletCards,
+    title: "Micro-Milestone Payment",
+    description: "Pembayaran simulasi dipecah per milestone agar progres dan fee tetap transparan.",
   },
-] as const;
+  {
+    icon: MessagesSquare,
+    title: "Project Collaboration Hub",
+    description: "Overview, chat, file, dan approval proyek dikunci dalam satu workspace profesional.",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background">
-      <LandingMenu />
+    <main className="pb-20">
+      <section className="hero-grid border-b border-white/70">
+        <div className="page-shell py-6">
+          <header className="glass-panel flex items-center justify-between px-5 py-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">Academic Professionalism</p>
+              <h1 className="text-2xl font-bold text-slate-900">StudeLance</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button asChild variant="ghost">
+                <Link href="/login">Masuk</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/register">Mulai</Link>
+              </Button>
+            </div>
+          </header>
 
-      <main>
-        <section id="tentang" className="accent-radial mx-auto grid w-full max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:px-8 lg:py-20">
-          <div className="space-y-6">
-            <p className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs text-primary">
-              <BadgeCheck className="size-4" />
-              Freelance platform khusus mahasiswa Indonesia
-            </p>
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
-              Bangun pengalaman kerja nyata sejak masa kuliah
-            </h1>
-            <p className="text-muted-foreground sm:text-lg">
-              StudeLance menghubungkan client dan mahasiswa terverifikasi untuk kolaborasi project yang aman,
-              terstruktur, dan transparan.
-            </p>
-
-            <div className="flex flex-wrap gap-3">
-              <Link href="/register">
-                <Button size="lg">Daftar Sekarang</Button>
-              </Link>
-              <Link href="/login">
-                <Button variant="outline" size="lg">
-                  Masuk ke Dashboard
+          <div className="grid gap-10 py-14 lg:grid-cols-[1.1fr_0.9fr] lg:py-20">
+            <div className="space-y-8">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white/70 px-4 py-2 text-sm font-medium text-primary shadow-sm">
+                <BadgeCheck className="size-4" />
+                Marketplace freelance khusus mahasiswa Indonesia
+              </div>
+              <div className="space-y-5">
+                <h2 className="max-w-3xl text-5xl font-extrabold leading-[1.05] tracking-tight text-slate-950 sm:text-6xl">
+                  Kerja fleksibel untuk mahasiswa, dengan ritme yang aman buat kuliah dan klien.
+                </h2>
+                <p className="max-w-2xl text-lg leading-8 text-slate-600">
+                  StudeLance menggabungkan verifikasi KTM, kalender akademik, workspace proyek, dan micro-milestone
+                  payment agar pengalaman freelance terasa lebih terpercaya sejak project pertama.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button asChild size="lg">
+                  <Link href="/register">
+                    Daftar Sekarang
+                    <ArrowRight className="size-4" />
+                  </Link>
                 </Button>
-              </Link>
+                <Button asChild variant="outline" size="lg">
+                  <Link href="/login">Lihat Workspace</Link>
+                </Button>
+              </div>
+            </div>
+
+            <div className="glass-panel overflow-hidden p-6">
+              <div className="rounded-[24px] bg-[#f4f8f0] p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">Core Flow</p>
+                <div className="mt-5 space-y-4">
+                  {[
+                    "Student daftar, lengkapi profil, lalu unggah KTM.",
+                    "Admin meninjau verifikasi dan membuka akses apply project.",
+                    "Client posting project, review proposal, dan tetapkan milestone.",
+                    "Kolaborasi berjalan lewat overview, chat, file, calendar, dan billing.",
+                  ].map((item, index) => (
+                    <div key={item} className="flex gap-4 rounded-2xl bg-white px-4 py-4 shadow-sm">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-sm font-bold text-white">
+                        {index + 1}
+                      </div>
+                      <p className="text-sm leading-6 text-slate-600">{item}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          <Card className="accent-glow border-primary/40 bg-gradient-to-br from-primary/15 via-card to-card">
-            <CardHeader>
-              <CardTitle className="text-primary">Ringkasan Alur StudeLance</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p><span className="font-semibold text-primary">1.</span> Student daftar akun dan unggah KTM.</p>
-              <p><span className="font-semibold text-primary">2.</span> Admin review dan approve verifikasi.</p>
-              <p><span className="font-semibold text-primary">3.</span> Client membuat project dan milestone.</p>
-              <p><span className="font-semibold text-primary">4.</span> Kolaborasi berjalan dengan status progress yang jelas.</p>
-            </CardContent>
-          </Card>
-        </section>
-
-        <section id="fitur" className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold sm:text-3xl">Fitur Utama</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Didesain agar fitur penting terlihat menonjol dan mudah dipahami.</p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {features.map((item, index) => (
-              <Card key={item.title} className="accent-glow border-primary/30 transition-all hover:-translate-y-1 hover:border-primary/60">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <span className="rounded-md bg-primary/15 p-1 text-primary">
-                      <item.icon className="size-5" />
-                    </span>
-                    {item.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
-                  <p className="mt-3 text-xs font-medium text-primary">Highlight #{index + 1}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        <section id="cara-kerja" className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Cara Kerja Singkat</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 text-sm text-muted-foreground md:grid-cols-3">
-              <p>
-                <span className="font-medium text-foreground">Student:</span> registrasi, verifikasi, lalu ambil
-                project.
-              </p>
-              <p>
-                <span className="font-medium text-foreground">Client:</span> buat project, tentukan milestone,
-                pantau progres.
-              </p>
-              <p>
-                <span className="font-medium text-foreground">Admin:</span> moderasi verifikasi dan audit aktivitas
-                penting.
-              </p>
-            </CardContent>
-          </Card>
-        </section>
-
-        <LandingSupport />
-      </main>
-    </div>
+      <section className="page-shell py-16">
+        <div className="mb-8 max-w-2xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/70">Built for Trust</p>
+          <h3 className="mt-3 text-4xl font-bold text-slate-950">Semua fitur penting dari PRD hadir di alur inti.</h3>
+        </div>
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          {features.map((feature) => (
+            <Card key={feature.title} className="rounded-[28px] border-white/70 shadow-[0_16px_45px_rgba(15,23,42,0.06)]">
+              <CardHeader>
+                <div className="flex size-12 items-center justify-center rounded-2xl bg-[#edf6e8] text-primary">
+                  <feature.icon className="size-5" />
+                </div>
+                <CardTitle className="pt-4 text-xl">{feature.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm leading-7 text-slate-600">{feature.description}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+    </main>
   );
 }

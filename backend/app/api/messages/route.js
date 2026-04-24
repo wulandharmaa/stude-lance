@@ -4,6 +4,7 @@ import { success, error } from '@/utils/apiResponse';
 import { ApiError } from '@/utils/apiError';
 import { isValidUuid } from '@/utils/validators';
 import { assertProjectMember } from '@/utils/accessControl';
+import { hydrateProjects } from '@/utils/projectQueries';
 
 export async function GET(request) {
   try {
@@ -14,16 +15,15 @@ export async function GET(request) {
     const projectId = searchParams.get('project_id');
     if (!isValidUuid(projectId)) return error('project_id wajib UUID valid.', 400);
 
-    await assertProjectMember(projectId, authUser.id);
+    const project = await assertProjectMember(projectId, authUser.id);
+    const [hydrated] = await hydrateProjects([project], {
+      viewerId: authUser.id,
+      viewerRole: profile.role,
+      includeMessages: true,
+      includeApplications: false,
+    });
 
-    const { data, error: qError } = await supabase
-      .from('messages')
-      .select('id, project_id, sender_id, content, created_at')
-      .eq('project_id', projectId)
-      .order('created_at', { ascending: true });
-
-    if (qError) return error('Gagal mengambil messages', 500, qError.message);
-    return success('Berhasil mengambil messages', data, 200);
+    return success('Berhasil mengambil messages', hydrated.messages);
   } catch (err) {
     if (err instanceof ApiError) return error(err.message, err.status);
     return error('Terjadi kesalahan server', 500, err.message);
@@ -55,8 +55,35 @@ export async function POST(request) {
       .select('id, project_id, sender_id, content, created_at')
       .single();
 
-    if (insError) return error('Gagal mengirim message', 500, insError.message);
-    return success('Message berhasil dikirim', data, 201);
+    if (insError) throw new ApiError(500, insError.message);
+
+    const [hydrated] = await hydrateProjects(
+      [
+        {
+          ...(await supabase
+            .from('projects')
+            .select('id, client_id, student_id, title, description, budget, city, category, deadline, status, created_at')
+            .eq('id', project_id)
+            .single()
+            .then(({ data: project, error: qError }) => {
+              if (qError) throw new ApiError(500, qError.message);
+              return project;
+            })),
+        },
+      ],
+      {
+        viewerId: authUser.id,
+        viewerRole: profile.role,
+        includeMessages: true,
+        includeApplications: false,
+      }
+    );
+
+    return success(
+      'Message berhasil dikirim',
+      hydrated.messages.find((message) => message.id === data.id) || data,
+      201
+    );
   } catch (err) {
     if (err instanceof ApiError) return error(err.message, err.status);
     return error('Terjadi kesalahan server', 500, err.message);

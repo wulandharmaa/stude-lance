@@ -1,5 +1,5 @@
 import supabase from '@/utils/supabaseClient';
-import { requireAuth, requireActiveAccount } from '@/utils/authorization';
+import { requireAuth } from '@/utils/authorization';
 import { success, error } from '@/utils/apiResponse';
 import { ApiError } from '@/utils/apiError';
 import { isValidUuid } from '@/utils/validators';
@@ -12,8 +12,7 @@ function isValidDateTime(value) {
 
 export async function GET(request) {
   try {
-    const { authUser, profile } = await requireAuth(request);
-    requireActiveAccount(profile);
+    const { authUser } = await requireAuth(request);
 
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('project_id');
@@ -41,8 +40,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const { authUser, profile } = await requireAuth(request);
-    requireActiveAccount(profile);
+    const { authUser } = await requireAuth(request);
 
     const body = await request.json();
     const { project_id = null, title, type, start_time, end_time } = body || {};

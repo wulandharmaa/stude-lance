@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import supabase from '@/utils/supabaseClient';
 import { requireAuth, requireRole, requireActiveAccount } from '@/utils/authorization';
 import { success, error } from '@/utils/apiResponse';
@@ -17,21 +16,21 @@ export async function DELETE(request, { params }) {
 
     const { milestone } = await assertMilestoneProjectClient(id, authUser.id);
 
-    if (milestone.status === 'approved') {
-      return error('Milestone dengan status approved tidak boleh dihapus.', 409);
+    if (['approved', 'paid'].includes(milestone.status)) {
+      return error('Milestone dengan status approved/paid tidak boleh dihapus.', 409);
     }
 
-    const { data: successPayment, error: payErr } = await supabase
+    const { data: paidPayment, error: payErr } = await supabase
       .from('payments')
       .select('id')
       .eq('milestone_id', id)
-      .eq('status', 'success')
+      .eq('status', 'paid')
       .limit(1)
       .maybeSingle();
 
     if (payErr) return error('Gagal memeriksa payment milestone.', 500, payErr.message);
-    if (successPayment) {
-      return error('Milestone dengan payment success tidak boleh dihapus.', 409);
+    if (paidPayment) {
+      return error('Milestone dengan payment paid tidak boleh dihapus.', 409);
     }
 
     const { data, error: delError } = await supabase

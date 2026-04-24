@@ -1,408 +1,375 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import KtmVerificationCard from "@/components/ktm/KtmVerificationCard";
-import apiClient from "@/utils/apiClient";
-import { ApiResponse } from "@/types/api";
-import { Project } from "@/types/project";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import apiClient from "@/utils/apiClient";
+import { fetchMe, fetchPayments, fetchProjects, fetchSchedules } from "@/utils/fetchers";
+import { formatCurrency, formatDate, formatDateTime } from "@/utils/formatters";
+import type { ApiResponse } from "@/types/api";
+import type { Project, UserProfile } from "@/types/project";
+import type { ScheduleItem } from "@/types/schedule";
+import type { PaymentRecord } from "@/types/payment";
+import { toast } from "sonner";
 
-export default function DashboardPage() {
+type PendingVerification = {
+  id: string;
+  status: string;
+  created_at: string;
+  ktm_preview_url: string | null;
+  users: {
+    id: string;
+    email: string;
+    full_name: string;
+    university_name?: string | null;
+  };
+};
+
+type AuditLog = {
+  id: string;
+  action: string;
+  created_at: string;
+  payload: Record<string, string>;
+};
+
+function MetricCard({ title, value, hint }: { title: string; value: string; hint: string }) {
+  return (
+    <Card className="rounded-[28px] border-white/70">
+      <CardContent className="p-5">
+        <p className="text-sm font-medium text-slate-500">{title}</p>
+        <p className="mt-3 text-3xl font-bold text-slate-950">{value}</p>
+        <p className="mt-2 text-sm text-slate-600">{hint}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function StudentDashboard({ profile }: { profile: UserProfile }) {
   const projectsQuery = useQuery({
-    queryKey: ["projects"],
-    queryFn: async () => {
-      const res = await apiClient.get<ApiResponse<Project[]>>("/api/projects");
-      if (!res.data.success) throw new Error(res.data.message);
-    import { useMemo } from "react";
-    import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-    },
+    queryKey: ["projects", "student-dashboard"],
+    queryFn: () => fetchProjects(),
+  });
+  const schedulesQuery = useQuery({
+    queryKey: ["schedules"],
+    queryFn: fetchSchedules,
   });
 
+  const projects = projectsQuery.data?.items || [];
+  const activeProjects = projects.filter((project) => project.permissions.is_member);
+  const upcomingSchedules = (schedulesQuery.data || []).slice(0, 4);
+
   return (
-    import { StudentVerification } from "@/types/verification";
-    import { toast } from "sonner";
-    import { Button } from "@/components/ui/button";
     <div className="space-y-6">
-      <div>
-    type UserRole = "admin" | "client" | "student";
+      <div className="glass-panel p-6">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/70">Student Dashboard</p>
+        <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="text-4xl font-bold text-slate-950">Halo, {profile.full_name}</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
+              Kelola verifikasi KTM, cari proyek baru, dan sesuaikan timeline kerja dengan kelas atau ujian Anda.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button asChild variant="outline">
+              <Link href="/calendar">Lihat Calendar</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/projects">Cari Proyek</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
 
-    type AuthMeResponse = {
-      message: string;
-      data: {
-        auth_user: {
-          id: string;
-          email: string;
-          created_at: string;
-        };
-        profile: {
-          id: string;
-          email: string;
-          full_name: string;
-          role: UserRole;
-          account_status: string;
-          is_student_verified: boolean;
-          is_active: boolean;
-        };
-      };
-    };
-
-    type AdminUser = {
-      id: string;
-      email: string;
-      full_name: string;
-      role: "student" | "client" | "admin";
-      is_student_verified: boolean;
-      account_status: "pending" | "approved" | "rejected";
-      is_active: boolean;
-    };
-
-    type PendingUser = {
-      id: string;
-      email: string;
-      full_name: string;
-      role: "student" | "client" | "admin";
-      created_at: string;
-    };
-
-    type PendingVerification = StudentVerification & {
-      user_id: string;
-      users?: {
-        id: string;
-        full_name: string;
-        email: string;
-      };
-    };
-
-        <h2 className="text-2xl font-semibold">Dashboard</h2>
-      const queryClient = useQueryClient();
-
-      const meQuery = useQuery({
-        queryKey: ["auth-me"],
-        queryFn: async () => {
-          const res = await apiClient.get<AuthMeResponse>("/api/auth/me");
-          return res.data.data;
-        },
-      });
-
-      const role = meQuery.data?.profile.role;
-
-        <p className="text-sm text-muted-foreground">Ringkasan aktivitas akun dan project Anda.</p>
+      <div className="grid gap-4 md:grid-cols-3">
+        <MetricCard
+          title="Open Opportunities"
+          value={String(projects.filter((project) => project.status === "open").length)}
+          hint="Project yang bisa dipantau atau dilamar."
+        />
+        <MetricCard
+          title="Active Projects"
+          value={String(activeProjects.length)}
+          hint="Project di mana Anda sudah menjadi kolaborator."
+        />
+        <MetricCard
+          title="Verification"
+          value={profile.is_student_verified ? "Approved" : profile.account_status}
+          hint="Status aktivasi akun mahasiswa."
+        />
       </div>
 
       <KtmVerificationCard />
 
-      <Card>
-        <CardHeader>
-        enabled: role === "student" || role === "client",
-      });
-
-      const allUsersQuery = useQuery({
-        queryKey: ["admin-all-users"],
-        queryFn: async () => {
-          const res = await apiClient.get<{ data: AdminUser[] }>("/api/users?limit=200");
-          return res.data.data || [];
-        },
-        enabled: role === "admin",
-      });
-
-      const pendingUsersQuery = useQuery({
-        queryKey: ["admin-pending-users"],
-        queryFn: async () => {
-          const res = await apiClient.get<ApiResponse<PendingUser[]>>("/api/admin/users/pending");
-          if (!res.data.success) throw new Error(res.data.message);
-          return res.data.data;
-        },
-        enabled: role === "admin",
-      });
-
-      const pendingVerificationsQuery = useQuery({
-        queryKey: ["admin-pending-verifications"],
-        queryFn: async () => {
-          const res = await apiClient.get<ApiResponse<PendingVerification[]>>("/api/admin/verifications");
-          if (!res.data.success) throw new Error(res.data.message);
-          return res.data.data;
-        },
-        enabled: role === "admin",
-          <CardTitle>Projects</CardTitle>
-
-      const approveUserMutation = useMutation({
-        mutationFn: async (userId: string) => {
-          const res = await apiClient.patch<ApiResponse<unknown>>(`/api/admin/users/${userId}/approve`);
-          if (!res.data.success) throw new Error(res.data.message);
-          return res.data;
-        },
-        onSuccess: () => {
-          toast.success("User berhasil di-approve.");
-          queryClient.invalidateQueries({ queryKey: ["admin-pending-users"] });
-          queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
-        },
-        onError: (err: Error) => toast.error(err.message),
-      });
-
-      const rejectUserMutation = useMutation({
-        mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
-          const res = await apiClient.patch<ApiResponse<unknown>>(`/api/admin/users/${userId}/reject`, { reason });
-          if (!res.data.success) throw new Error(res.data.message);
-          return res.data;
-        },
-        onSuccess: () => {
-          toast.success("User berhasil di-reject.");
-          queryClient.invalidateQueries({ queryKey: ["admin-pending-users"] });
-          queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
-        },
-        onError: (err: Error) => toast.error(err.message),
-      });
-
-      const approveVerificationMutation = useMutation({
-        mutationFn: async (verificationId: string) => {
-          const res = await apiClient.patch<ApiResponse<unknown>>(`/api/admin/verifications/${verificationId}/approve`);
-          if (!res.data.success) throw new Error(res.data.message);
-          return res.data;
-        },
-        onSuccess: () => {
-          toast.success("Verifikasi berhasil di-approve.");
-          queryClient.invalidateQueries({ queryKey: ["admin-pending-verifications"] });
-          queryClient.invalidateQueries({ queryKey: ["admin-pending-users"] });
-          queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
-        },
-        onError: (err: Error) => toast.error(err.message),
-      });
-
-      const rejectVerificationMutation = useMutation({
-        mutationFn: async ({ verificationId, reason }: { verificationId: string; reason: string }) => {
-          const res = await apiClient.patch<ApiResponse<unknown>>(`/api/admin/verifications/${verificationId}/reject`, {
-            reason,
-          });
-          if (!res.data.success) throw new Error(res.data.message);
-          return res.data;
-        },
-        onSuccess: () => {
-          toast.success("Verifikasi berhasil di-reject.");
-          queryClient.invalidateQueries({ queryKey: ["admin-pending-verifications"] });
-          queryClient.invalidateQueries({ queryKey: ["admin-pending-users"] });
-          queryClient.invalidateQueries({ queryKey: ["admin-all-users"] });
-        },
-        onError: (err: Error) => toast.error(err.message),
-      });
-
-      const adminSummary = useMemo(() => {
-        const users = allUsersQuery.data || [];
-        const approved = users.filter((u) => u.account_status === "approved").length;
-        const pending = users.filter((u) => u.account_status === "pending").length;
-        const rejected = users.filter((u) => u.account_status === "rejected").length;
-        return { total: users.length, approved, pending, rejected };
-      }, [allUsersQuery.data]);
-
-      const renderProjects = () => (
-        <Card>
+      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <Card className="rounded-[28px] border-white/70">
           <CardHeader>
-            <CardTitle>Projects</CardTitle>
+            <CardTitle>Project Pulse</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {projectsQuery.isLoading && <p className="text-sm text-muted-foreground">Memuat project...</p>}
-            {projectsQuery.isError && <p className="text-red-600">Gagal memuat project.</p>}
-            {!projectsQuery.isLoading && !projectsQuery.isError && projectsQuery.data?.length === 0 && (
-              <p className="text-sm text-muted-foreground">Belum ada project.</p>
-            )}
-            <ul className="space-y-2">
-              {projectsQuery.data?.map((project) => (
-                <li key={project.id} className="rounded-lg border bg-background p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{project.title}</p>
-                      <p className="text-sm text-gray-500">Status: {project.status}</p>
-                    </div>
-                    <Link className="text-sm underline" href={`/projects/${project.id}`}>
-                      Detail
-                    </Link>
+          <CardContent className="space-y-4">
+            {activeProjects.length === 0 ? (
+              <p className="text-sm text-slate-600">Belum ada project aktif. Jelajahi marketplace untuk mulai melamar.</p>
+            ) : (
+              activeProjects.map((project) => (
+                <Link
+                  key={project.id}
+                  href={`/projects/${project.id}`}
+                  className="flex items-center justify-between rounded-3xl border border-[#d7e2d2] bg-[#fbfdf9] px-5 py-4 transition hover:border-primary/40"
+                >
+                  <div>
+                    <p className="text-lg font-semibold text-slate-900">{project.title}</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {project.category || "General"} • {formatCurrency(project.budget)}
+                    </p>
                   </div>
-                </li>
-              ))}
-            </ul>
+                  <Badge variant="secondary" className="capitalize">
+                    {project.status.replace("_", " ")}
+                  </Badge>
+                </Link>
+              ))
+            )}
           </CardContent>
         </Card>
-      );
 
-      const renderAdminDashboard = () => (
-        <div className="space-y-6">
-          <div className="grid gap-3 md:grid-cols-4">
-            <Card className="border-primary/30">
-              <CardHeader>
-                <CardTitle>Total Users</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold text-primary">{adminSummary.total}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Approved</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold">{adminSummary.approved}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Pending</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold">{adminSummary.pending}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Rejected</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold">{adminSummary.rejected}</p>
-              </CardContent>
-            </Card>
+        <Card className="rounded-[28px] border-white/70">
+          <CardHeader>
+            <CardTitle>Upcoming Calendar</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {upcomingSchedules.length === 0 ? (
+              <p className="text-sm text-slate-600">Belum ada jadwal akademik. Tambahkan kelas, ujian, atau deadline proyek.</p>
+            ) : (
+              upcomingSchedules.map((item: ScheduleItem) => (
+                <div key={item.id} className="rounded-3xl border border-[#d7e2d2] px-4 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold text-slate-900">{item.title}</p>
+                    <Badge variant="outline" className="capitalize">
+                      {item.type.replace("_", " ")}
+                    </Badge>
+                  </div>
+                  <p className="mt-2 text-sm text-slate-600">{formatDateTime(item.start_time)}</p>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function ClientDashboard({ profile }: { profile: UserProfile }) {
+  const projectsQuery = useQuery({
+    queryKey: ["projects", "client-dashboard"],
+    queryFn: () => fetchProjects(),
+  });
+  const paymentsQuery = useQuery({
+    queryKey: ["payments"],
+    queryFn: () => fetchPayments(),
+  });
+
+  const projects = projectsQuery.data?.items || [];
+  const inProgress = projects.filter((project) => project.status === "in_progress");
+  const openProjects = projects.filter((project) => project.status === "open");
+  const paidTotal = (paymentsQuery.data || []).reduce((acc, item: PaymentRecord) => {
+    if (item.status === "paid") acc += Number(item.amount || 0);
+    return acc;
+  }, 0);
+
+  return (
+    <div className="space-y-6">
+      <div className="glass-panel p-6">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/70">Client Dashboard</p>
+        <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="text-4xl font-bold text-slate-950">Workspace klien untuk {profile.full_name}</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
+              Buat proyek baru, pantau proposal mahasiswa, dan kendalikan micro-milestone payment dari satu tempat.
+            </p>
           </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Pending Approval Users</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {pendingUsersQuery.isLoading && <p className="text-sm text-muted-foreground">Memuat pending users...</p>}
-              {pendingUsersQuery.isError && <p className="text-red-600">Gagal memuat pending users.</p>}
-              {!pendingUsersQuery.isLoading && !pendingUsersQuery.isError && pendingUsersQuery.data?.length === 0 && (
-                <p className="text-sm text-muted-foreground">Tidak ada user pending.</p>
-              )}
-              <ul className="space-y-2">
-                {pendingUsersQuery.data?.map((user) => (
-                  <li key={user.id} className="rounded-lg border p-3">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <p className="font-medium">{user.full_name || user.email}</p>
-                        <p className="text-sm text-muted-foreground">{user.email} • role: {user.role}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => approveUserMutation.mutate(user.id)}
-                          disabled={approveUserMutation.isPending || rejectUserMutation.isPending}
-                        >
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            const reason = window.prompt("Alasan reject user (minimal 5 karakter):", "");
-                            if (!reason) return;
-                            rejectUserMutation.mutate({ userId: user.id, reason });
-                          }}
-                          disabled={approveUserMutation.isPending || rejectUserMutation.isPending}
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Pending KTM Verifications</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {pendingVerificationsQuery.isLoading && (
-                <p className="text-sm text-muted-foreground">Memuat pending verifications...</p>
-              )}
-              {pendingVerificationsQuery.isError && <p className="text-red-600">Gagal memuat pending verifications.</p>}
-              {!pendingVerificationsQuery.isLoading &&
-                !pendingVerificationsQuery.isError &&
-                pendingVerificationsQuery.data?.length === 0 && (
-                  <p className="text-sm text-muted-foreground">Tidak ada verifikasi pending.</p>
-                )}
-              <ul className="space-y-2">
-                {pendingVerificationsQuery.data?.map((verif) => (
-                  <li key={verif.id} className="rounded-lg border p-3">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <p className="font-medium">{verif.users?.full_name || verif.users?.email || verif.user_id}</p>
-                        <p className="text-sm text-muted-foreground">{verif.users?.email}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => approveVerificationMutation.mutate(verif.id)}
-                          disabled={approveVerificationMutation.isPending || rejectVerificationMutation.isPending}
-                        >
-                          Approve KTM
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            const reason = window.prompt("Alasan reject verifikasi (minimal 5 karakter):", "");
-                            if (!reason) return;
-                            rejectVerificationMutation.mutate({ verificationId: verif.id, reason });
-                          }}
-                          disabled={approveVerificationMutation.isPending || rejectVerificationMutation.isPending}
-                        >
-                          Reject KTM
-                        </Button>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+          <Button asChild>
+            <Link href="/projects/create">Post a New Project</Link>
+          </Button>
         </div>
-      );
+      </div>
 
-      const renderClientDashboard = () => (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Client Workspace</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Anda login sebagai client. Kelola project dan pantau progres student dari dashboard ini.
-            </CardContent>
-          </Card>
-          {renderProjects()}
-        </div>
-      );
+      <div className="grid gap-4 md:grid-cols-3">
+        <MetricCard title="Open Projects" value={String(openProjects.length)} hint="Masih mencari student yang tepat." />
+        <MetricCard title="In Progress" value={String(inProgress.length)} hint="Kolaborasi yang sedang aktif berjalan." />
+        <MetricCard title="Paid to Students" value={formatCurrency(paidTotal)} hint="Akumulasi pembayaran simulasi milestone." />
+      </div>
 
-      const renderStudentDashboard = () => (
-        <div className="space-y-6">
-          <KtmVerificationCard />
-          {renderProjects()}
-        </div>
-      );
-
+      <Card className="rounded-[28px] border-white/70">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Project Portfolio</CardTitle>
+          <Button asChild variant="outline">
+            <Link href="/projects">Manage All</Link>
+          </Button>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {projectsQuery.isLoading && <p className="text-sm text-muted-foreground">Memuat project...</p>}
-            <h2 className="text-2xl font-semibold">
-              Dashboard {role ? `(${role})` : ""}
-            </h2>
-            <p className="text-sm text-muted-foreground">Ringkasan aktivitas akun sesuai role Anda.</p>
-            <p className="text-sm text-muted-foreground">Belum ada project.</p>
-          )}
-          {meQuery.isLoading ? <p className="text-sm text-muted-foreground">Memuat profil...</p> : null}
-          {meQuery.isError ? <p className="text-red-600">Gagal memuat profil user.</p> : null}
+        <CardContent className="space-y-4">
+          {projects.map((project: Project) => (
+            <Link
+              key={project.id}
+              href={`/projects/${project.id}`}
+              className="grid gap-4 rounded-3xl border border-[#d7e2d2] bg-[#fbfdf9] px-5 py-5 md:grid-cols-[1fr_auto]"
+            >
+              <div>
+                <p className="text-lg font-semibold text-slate-900">{project.title}</p>
+                <p className="mt-2 text-sm leading-7 text-slate-600">{project.description}</p>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
+                  <span>{project.city || "Kota belum diisi"}</span>
+                  <span>•</span>
+                  <span>{project.category || "General"}</span>
+                  <span>•</span>
+                  <span>{formatCurrency(project.budget)}</span>
+                </div>
+              </div>
+              <div className="flex flex-col items-start gap-2 md:items-end">
+                <Badge variant="secondary" className="capitalize">
+                  {project.status.replace("_", " ")}
+                </Badge>
+                <p className="text-xs text-slate-500">Deadline {formatDate(project.deadline)}</p>
+              </div>
+            </Link>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
-          {!meQuery.isLoading && !meQuery.isError && role === "admin" ? renderAdminDashboard() : null}
-          {!meQuery.isLoading && !meQuery.isError && role === "client" ? renderClientDashboard() : null}
-          {!meQuery.isLoading && !meQuery.isError && role === "student" ? renderStudentDashboard() : null}
+function AdminDashboard() {
+  const queryClient = useQueryClient();
+  const verificationsQuery = useQuery({
+    queryKey: ["admin-verifications"],
+    queryFn: async () => {
+      const res = await apiClient.get<ApiResponse<PendingVerification[]>>("/api/admin/verifications");
+      return res.data.data;
+    },
+  });
+  const auditQuery = useQuery({
+    queryKey: ["admin-audit"],
+    queryFn: async () => {
+      const res = await apiClient.get<ApiResponse<{ items: AuditLog[] }>>("/api/admin/audit-logs");
+      return res.data.data.items;
+    },
+  });
 
-          {!meQuery.isLoading && !meQuery.isError && !role ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Role Tidak Dikenali</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                Role user belum tersedia. Silakan cek data profile di backend.
-              </CardContent>
-            </Card>
-          ) : null}
+  const approveMutation = useMutation({
+    mutationFn: async (verificationId: string) => {
+      await apiClient.patch(`/api/admin/verifications/${verificationId}/approve`);
+    },
+    onSuccess: () => {
+      toast.success("Verifikasi mahasiswa disetujui.");
+      queryClient.invalidateQueries({ queryKey: ["admin-verifications"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-audit"] });
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: async (verificationId: string) => {
+      await apiClient.patch(`/api/admin/verifications/${verificationId}/reject`, {
+        reason: "Perlu revisi dokumen KTM sebelum disetujui.",
+      });
+    },
+    onSuccess: () => {
+      toast.success("Verifikasi mahasiswa ditolak.");
+      queryClient.invalidateQueries({ queryKey: ["admin-verifications"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-audit"] });
+    },
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="glass-panel p-6">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/70">Admin Console</p>
+        <h2 className="mt-4 text-4xl font-bold text-slate-950">Moderasi akun dan kualitas marketplace.</h2>
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
+          Fokus utama admin adalah verifikasi mahasiswa, audit trail keputusan, dan menjaga account activation tetap
+          konsisten dengan PRD.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <MetricCard
+          title="Pending Verification"
+          value={String(verificationsQuery.data?.length || 0)}
+          hint="Pengajuan KTM yang menunggu keputusan."
+        />
+        <MetricCard
+          title="Audit Events"
+          value={String(auditQuery.data?.length || 0)}
+          hint="Log aktivitas admin terbaru."
+        />
+        <MetricCard title="Safety Mode" value="Manual" hint="Semua approval masih diputuskan oleh admin." />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <Card className="rounded-[28px] border-white/70">
+          <CardHeader>
+            <CardTitle>Pending KTM Reviews</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {(verificationsQuery.data || []).map((item) => (
+              <div key={item.id} className="rounded-3xl border border-[#d7e2d2] bg-[#fbfdf9] p-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <p className="text-lg font-semibold text-slate-900">{item.users.full_name}</p>
+                    <p className="mt-1 text-sm text-slate-600">{item.users.email}</p>
+                    <p className="mt-2 text-xs text-slate-500">Dikirim {formatDateTime(item.created_at)}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={() => approveMutation.mutate(item.id)} disabled={approveMutation.isPending}>
+                      Approve
+                    </Button>
+                    <Button variant="outline" onClick={() => rejectMutation.mutate(item.id)} disabled={rejectMutation.isPending}>
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+                {item.ktm_preview_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.ktm_preview_url} alt={item.users.full_name} className="mt-4 h-48 w-full rounded-3xl object-cover" />
+                ) : null}
+              </div>
+            ))}
+            {verificationsQuery.data?.length === 0 ? (
+              <p className="text-sm text-slate-600">Tidak ada pengajuan verifikasi yang menunggu review.</p>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-[28px] border-white/70">
+          <CardHeader>
+            <CardTitle>Recent Audit Trail</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {(auditQuery.data || []).slice(0, 5).map((log) => (
+              <div key={log.id} className="rounded-3xl border border-[#d7e2d2] px-4 py-4">
+                <p className="font-semibold capitalize text-slate-900">{log.action.replaceAll("_", " ")}</p>
+                <p className="mt-1 text-sm text-slate-600">{formatDateTime(log.created_at)}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  const meQuery = useQuery({
+    queryKey: ["me"],
+    queryFn: fetchMe,
+  });
+
+  if (!meQuery.data?.profile) {
+    return <div className="glass-panel p-8 text-center text-sm text-slate-600">Memuat dashboard...</div>;
+  }
+
+  if (meQuery.data.profile.role === "admin") return <AdminDashboard />;
+  if (meQuery.data.profile.role === "client") return <ClientDashboard profile={meQuery.data.profile} />;
+  return <StudentDashboard profile={meQuery.data.profile} />;
+}

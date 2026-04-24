@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/utils/supabaseClient";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
@@ -15,8 +15,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setLoading(true);
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -32,28 +32,42 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Masuk</CardTitle>
-          <p className="text-sm text-muted-foreground">Lanjutkan ke dashboard StudeLance.</p>
-        </CardHeader>
-        <CardContent>
+    <main className="page-shell grid min-h-screen items-center py-10 lg:grid-cols-2">
+      <div className="hidden pr-12 lg:block">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/70">Welcome Back</p>
+        <h1 className="mt-4 text-5xl font-extrabold leading-tight text-slate-950">
+          Masuk ke workspace proyek mahasiswa yang rapi dan terpercaya.
+        </h1>
+        <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
+          Pantau milestone, diskusi proyek, kalender akademik, dan billing dari satu dashboard yang konsisten dengan
+          ritme kuliah maupun kebutuhan klien.
+        </p>
+      </div>
+
+      <Card className="glass-panel mx-auto w-full max-w-xl overflow-hidden border-white/70">
+        <CardContent className="grid gap-8 p-8">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/70">Login</p>
+            <h2 className="mt-3 text-3xl font-bold text-slate-950">Akses dashboard StudeLance</h2>
+            <p className="mt-2 text-sm text-slate-600">Gunakan akun Supabase Anda untuk masuk ke workspace.</p>
+          </div>
+
           <form onSubmit={onSubmit} className="space-y-4">
             <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Memproses..." : "Masuk"}
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+              {loading ? "Memproses..." : "Masuk ke Workspace"}
             </Button>
-
-            <div className="flex justify-between text-sm">
-              <Link href="/forgot-password" className="underline">Lupa password?</Link>
-              <Link href="/register" className="underline">Belum punya akun?</Link>
-            </div>
-            <p className="text-center text-xs text-muted-foreground">
-              Kembali ke <Link href="/" className="underline">landing page</Link>
-            </p>
           </form>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
+            <Link href="/forgot-password" className="underline decoration-primary/50 underline-offset-4">
+              Lupa password?
+            </Link>
+            <Link href="/register" className="underline decoration-primary/50 underline-offset-4">
+              Buat akun baru
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </main>

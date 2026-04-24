@@ -1,76 +1,53 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Bell, LogOut, Plus } from "lucide-react";
 import { supabase } from "@/utils/supabaseClient";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import Sidebar from "./Sidebar";
-import { toast } from "sonner";
+import type { UserProfile } from "@/types/project";
 
-export default function Navbar() {
+type Props = {
+  profile: UserProfile;
+};
+
+export default function Navbar({ profile }: Props) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState("");
-
-  useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase.auth.getSession();
-      setEmail(data.session?.user.email ?? "");
-    };
-
-    load();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setEmail(session?.user.email ?? "");
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
 
   const logout = async () => {
     await supabase.auth.signOut();
-    toast.success("Logout berhasil.");
     router.push("/login");
   };
 
   return (
-    <header className="flex h-14 items-center justify-between border-b bg-background px-4">
-      <div className="flex items-center gap-2">
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger
-            render={<Button variant="outline" size="sm" className="md:hidden" aria-label="Open menu" />}
-          >
-            ☰
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-72">
-            <SheetHeader className="px-4 pt-4">
-              <SheetTitle>Menu</SheetTitle>
-            </SheetHeader>
-            <div className="mt-2">
-              <Sidebar onNavigate={() => setOpen(false)} />
-            </div>
-          </SheetContent>
-        </Sheet>
+    <header className="sticky top-0 z-40 border-b border-white/70 bg-white/75 backdrop-blur">
+      <div className="page-shell flex h-20 items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">Academic Professionalism</p>
+          <h1 className="text-2xl font-bold text-slate-900">StudeLance Workspace</h1>
+        </div>
 
-        <h1 className="font-semibold">StudeLance</h1>
-      </div>
-
-      <div className="flex items-center gap-2">
-        {email ? <p className="hidden text-xs text-muted-foreground sm:block">{email}</p> : null}
-        <Button variant="outline" onClick={logout}>
-          Logout
-        </Button>
+        <div className="flex items-center gap-3">
+          {profile.role === "client" ? (
+            <Button asChild className="hidden sm:inline-flex">
+              <Link href="/projects/create">
+                <Plus className="size-4" />
+                New Project
+              </Link>
+            </Button>
+          ) : null}
+          <Button variant="outline" size="icon-sm" aria-label="Notifications">
+            <Bell className="size-4" />
+          </Button>
+          <div className="hidden rounded-2xl border border-[#d7e2d2] bg-[#f8fbf6] px-4 py-2 text-right sm:block">
+            <p className="text-sm font-semibold text-slate-900">{profile.full_name}</p>
+            <p className="text-xs capitalize text-slate-500">{profile.role}</p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={logout}>
+            <LogOut className="size-4" />
+            Logout
+          </Button>
+        </div>
       </div>
     </header>
   );
