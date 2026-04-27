@@ -1,16 +1,21 @@
 import supabase from '@/utils/supabaseClient';
-import { requireAuth, requireAdmin } from '@/utils/authorization';
+// FIX: Import requireRole, BUKAN requireAdmin
+import { requireAuth, requireRole } from '@/utils/authorization';
 import { success, error } from '@/utils/apiResponse';
 import { ApiError } from '@/utils/apiError';
 import { isValidUuid } from '@/utils/validators';
 import { writeAdminAudit } from '@/utils/adminAudit';
 
-export async function PATCH(request, { params }) {
+export async function PATCH(request, context) {
   try {
     const { authUser, profile } = await requireAuth(request);
-    requireAdmin(profile);
+    
+    // FIX: Gunakan requireRole untuk memvalidasi Admin
+    requireRole(profile, ['admin']);
 
+    const params = await context.params;
     const id = params.id;
+    
     if (!isValidUuid(id)) return error('id verifikasi tidak valid.', 400);
 
     const { data: verif, error: findError } = await supabase

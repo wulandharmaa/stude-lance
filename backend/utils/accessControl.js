@@ -7,7 +7,7 @@ export async function getProjectById(projectId) {
 
   const { data, error } = await supabase
     .from('projects')
-    .select('id, client_id, student_id, title, description, budget, city, category, deadline, status, created_at')
+    .select('id, client_id, student_id, title, description, project_image_url, budget, city, category, deadline, status, created_at')
     .eq('id', projectId)
     .maybeSingle();
 

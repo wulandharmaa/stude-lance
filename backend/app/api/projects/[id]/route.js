@@ -26,7 +26,7 @@ export async function GET(request, { params }) {
       includeApplications: true,
     });
 
-    if (profile.role === 'student' && !profile.is_active) {
+    if (profile.role === 'student' && (!profile.is_active || !profile.is_student_verified)) {
       hydrated.permissions.can_apply = false;
       hydrated.permissions.can_message = hydrated.permissions.is_member;
       hydrated.permissions.can_upload_files = hydrated.permissions.is_member;
@@ -85,6 +85,10 @@ export async function PATCH(request, { params }) {
     const payload = {
       title: body?.title?.trim() || current.title,
       description: body?.description?.trim() ?? current.description,
+      project_image_url:
+        body?.project_image_url !== undefined
+          ? body.project_image_url?.trim() || null
+          : current.project_image_url,
       budget: body?.budget !== undefined ? Number(body.budget) : Number(current.budget || 0),
       city: body?.city?.trim() ?? current.city,
       category: body?.category?.trim() ?? current.category,
@@ -104,7 +108,7 @@ export async function PATCH(request, { params }) {
       .from('projects')
       .update(payload)
       .eq('id', id)
-      .select('id, client_id, student_id, title, description, budget, city, category, deadline, status, created_at')
+      .select('id, client_id, student_id, title, description, project_image_url, budget, city, category, deadline, status, created_at')
       .single();
 
     if (updateError) throw new ApiError(500, updateError.message);

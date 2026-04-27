@@ -12,20 +12,32 @@ import type { Project } from "@/types/project";
 import { toast } from "sonner";
 
 type MilestoneDraft = {
+  id: string;
   title: string;
   description: string;
   amount: string;
   due_date: string;
 };
 
+function createMilestoneDraft(seedTitle = ""): MilestoneDraft {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    title: seedTitle,
+    description: "",
+    amount: "",
+    due_date: "",
+  };
+}
+
 export default function CreateProjectPage() {
   const router = useRouter();
   const [milestones, setMilestones] = useState<MilestoneDraft[]>([
-    { title: "Discovery", description: "", amount: "", due_date: "" },
+    createMilestoneDraft("Discovery"),
   ]);
   const [form, setForm] = useState({
     title: "",
     description: "",
+    project_image_url: "",
     budget: "",
     city: "",
     category: "",
@@ -37,6 +49,7 @@ export default function CreateProjectPage() {
       const res = await apiClient.post<ApiResponse<Project>>("/api/projects", {
         ...form,
         budget: Number(form.budget),
+        project_image_url: form.project_image_url || null,
         milestones: milestones
           .filter((item) => item.title.trim())
           .map((item) => ({
@@ -70,6 +83,11 @@ export default function CreateProjectPage() {
           <Input placeholder="Project title" value={form.title} onChange={(e) => setForm((current) => ({ ...current, title: e.target.value }))} />
           <Input placeholder="Kategori" value={form.category} onChange={(e) => setForm((current) => ({ ...current, category: e.target.value }))} />
           <Input placeholder="Kota target" value={form.city} onChange={(e) => setForm((current) => ({ ...current, city: e.target.value }))} />
+          <Input
+            placeholder="Project cover image URL (opsional)"
+            value={form.project_image_url}
+            onChange={(e) => setForm((current) => ({ ...current, project_image_url: e.target.value }))}
+          />
           <Input placeholder="Budget total (IDR)" value={form.budget} onChange={(e) => setForm((current) => ({ ...current, budget: e.target.value }))} />
           <Input className="md:col-span-2" type="date" value={form.deadline} onChange={(e) => setForm((current) => ({ ...current, deadline: e.target.value }))} />
           <textarea
@@ -86,16 +104,14 @@ export default function CreateProjectPage() {
           <CardTitle>Step 2. Micro-Milestones</CardTitle>
           <Button
             variant="outline"
-            onClick={() =>
-              setMilestones((current) => [...current, { title: "", description: "", amount: "", due_date: "" }])
-            }
+            onClick={() => setMilestones((current) => [...current, createMilestoneDraft()])}
           >
             Add Milestone
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           {milestones.map((milestone, index) => (
-            <div key={`${milestone.title}-${index}`} className="grid gap-4 rounded-3xl border border-[#d7e2d2] p-4 md:grid-cols-2">
+            <div key={milestone.id} className="grid gap-4 rounded-3xl border border-[#d7e2d2] p-4 md:grid-cols-2">
               <Input
                 placeholder={`Milestone ${index + 1} title`}
                 value={milestone.title}

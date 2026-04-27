@@ -29,6 +29,7 @@ export default function ProfilePage() {
     university_name: string;
     major: string;
     about: string;
+    avatar_url: string;
     skills: string;
   } | null>(null);
 
@@ -36,6 +37,7 @@ export default function ProfilePage() {
     mutationFn: async () => {
       const res = await apiClient.patch<ApiResponse<UserProfile>>("/api/profile", {
         ...form,
+        avatar_url: form.avatar_url || null,
         skills: form.skills.split(",").map((item) => item.trim()).filter(Boolean),
       });
       return res.data.data;
@@ -61,12 +63,25 @@ export default function ProfilePage() {
     university_name: profile.university_name || "",
     major: profile.major || "",
     about: profile.about || "",
+    avatar_url: profile.avatar_url || "",
     skills: (profile.skills || []).join(", "),
   };
 
   return (
     <div className="space-y-6">
       <div className="glass-panel p-6">
+        <div className="mb-4 flex items-center gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={form.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.full_name)}&background=EAF4E4&color=1F4D11`}
+            alt={profile.full_name}
+            className="size-16 rounded-full border border-[#d7e2d2] object-cover"
+          />
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Profile Photo</p>
+            <p className="text-sm text-slate-600">Masukkan URL gambar untuk avatar profil (opsional).</p>
+          </div>
+        </div>
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/70">Profile</p>
         <h2 className="mt-4 text-4xl font-bold text-slate-950">{profile.full_name}</h2>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">{profile.about || "Tambahkan bio singkat agar klien atau admin memahami konteks Anda."}</p>
@@ -104,6 +119,11 @@ export default function ProfilePage() {
               placeholder="Jurusan / Bidang"
               value={form.major}
               onChange={(e) => setDraft((current) => ({ ...(current ?? form), major: e.target.value }))}
+            />
+            <Input
+              placeholder="URL Foto Profil (opsional)"
+              value={form.avatar_url}
+              onChange={(e) => setDraft((current) => ({ ...(current ?? form), avatar_url: e.target.value }))}
             />
             <textarea
               className="min-h-40 rounded-3xl border border-input bg-white px-4 py-3 text-sm text-slate-700"

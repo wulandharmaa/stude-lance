@@ -17,9 +17,8 @@ export default function Sidebar({ profile, onNavigate }: Props) {
   const links =
     profile.role === "admin"
       ? [
-          { href: "/dashboard", label: "Admin Dashboard", icon: ShieldCheck },
-          { href: "/projects", label: "Projects", icon: BriefcaseBusiness },
-          { href: "/profile", label: "Profile", icon: UserRound },
+          { href: "/dashboard", label: "Users", icon: UserRound },
+          { href: "/dashboard?view=verifications", label: "Verifications", icon: ShieldCheck },
         ]
       : [
           { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },

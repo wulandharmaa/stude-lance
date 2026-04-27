@@ -25,7 +25,7 @@ async function fetchProjectsForStudent(profile, filters, from, to) {
   let openQuery = supabase
     .from('projects')
     .select(
-      'id, client_id, student_id, title, description, budget, city, category, deadline, status, created_at',
+      'id, client_id, student_id, title, description, project_image_url, budget, city, category, deadline, status, created_at',
       { count: 'exact' }
     )
     .order('created_at', { ascending: false });
@@ -57,7 +57,7 @@ async function fetchProjectsForStudent(profile, filters, from, to) {
   if (applicationProjectIds.length > 0) {
     let appliedQuery = supabase
       .from('projects')
-      .select('id, client_id, student_id, title, description, budget, city, category, deadline, status, created_at')
+      .select('id, client_id, student_id, title, description, project_image_url, budget, city, category, deadline, status, created_at')
       .in('id', applicationProjectIds);
 
     appliedQuery = applyProjectFilters(appliedQuery, filters);
@@ -106,7 +106,7 @@ export async function GET(request) {
       let query = supabase
         .from('projects')
         .select(
-          'id, client_id, student_id, title, description, budget, city, category, deadline, status, created_at',
+          'id, client_id, student_id, title, description, project_image_url, budget, city, category, deadline, status, created_at',
           { count: 'exact' }
         )
         .order('created_at', { ascending: false })
@@ -121,7 +121,7 @@ export async function GET(request) {
       let query = supabase
         .from('projects')
         .select(
-          'id, client_id, student_id, title, description, budget, city, category, deadline, status, created_at',
+          'id, client_id, student_id, title, description, project_image_url, budget, city, category, deadline, status, created_at',
           { count: 'exact' }
         )
         .eq('client_id', authUser.id)
@@ -144,6 +144,13 @@ export async function GET(request) {
       viewerRole: profile.role,
       includeApplications: true,
     });
+
+    if (profile.role === 'student' && (!profile.is_active || !profile.is_student_verified)) {
+      hydrated.forEach((project) => {
+        project.permissions.can_apply = false;
+        project.requires_verification = true;
+      });
+    }
 
     return success('Berhasil mengambil projects', {
       items: hydrated,
@@ -173,6 +180,7 @@ export async function POST(request) {
       budget,
       city = null,
       category = null,
+      project_image_url = null,
       deadline = null,
       student_id = null,
       status = 'open',
@@ -200,6 +208,10 @@ export async function POST(request) {
       return error(`status harus salah satu: ${PROJECT_STATUS.join(', ')}`, 400);
     }
 
+    if (project_image_url !== null && typeof project_image_url !== 'string') {
+      return error('project_image_url harus string URL atau null.', 400);
+    }
+
     const { data: createdProject, error: createError } = await supabase
       .from('projects')
       .insert({
@@ -207,13 +219,14 @@ export async function POST(request) {
         student_id,
         title: title.trim(),
         description: description?.trim() || null,
+        project_image_url: project_image_url?.trim() || null,
         budget: parsedBudget,
         city: city?.trim() || null,
         category: category?.trim() || null,
         deadline,
         status,
       })
-      .select('id, client_id, student_id, title, description, budget, city, category, deadline, status, created_at')
+      .select('id, client_id, student_id, title, description, project_image_url, budget, city, category, deadline, status, created_at')
       .single();
 
     if (createError) throw new ApiError(500, createError.message);

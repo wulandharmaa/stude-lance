@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,11 @@ import { formatCurrency, formatDate } from "@/utils/formatters";
 import type { ApiResponse } from "@/types/api";
 import type { Project } from "@/types/project";
 import { toast } from "sonner";
+
+function getApiErrorMessage(err: unknown, fallback: string) {
+  const axiosErr = err as AxiosError<{ message?: string }>;
+  return axiosErr?.response?.data?.message || axiosErr?.message || fallback;
+}
 
 export default function ProjectsPage() {
   const queryClient = useQueryClient();
@@ -42,11 +48,16 @@ export default function ProjectsPage() {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
     onError: (err: Error) => {
-      toast.error(err.message);
+      toast.error(getApiErrorMessage(err, "Gagal mengirim proposal."));
     },
   });
 
   const role = meQuery.data?.profile.role;
+  const canStudentApplyInstantly =
+    role === "student" &&
+    !!meQuery.data?.profile.is_active &&
+    !!meQuery.data?.profile.is_student_verified &&
+    meQuery.data?.profile.account_status === "approved";
   const projects = projectsQuery.data?.items || [];
 
   return (
@@ -91,6 +102,17 @@ export default function ProjectsPage() {
         {projects.map((project: Project) => (
           <Card key={project.id} className="rounded-[28px] border-white/70">
             <CardHeader className="space-y-4">
+              <div className="overflow-hidden rounded-2xl border border-[#d7e2d2]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={
+                    project.project_image_url ||
+                    "https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1200&auto=format&fit=crop"
+                  }
+                  alt="Project collaboration preview"
+                  className="h-36 w-full object-cover"
+                />
+              </div>
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <CardTitle className="text-2xl">{project.title}</CardTitle>
@@ -121,9 +143,15 @@ export default function ProjectsPage() {
                   <Link href={`/projects/${project.id}`}>Open Detail</Link>
                 </Button>
                 {role === "student" && project.permissions.can_apply ? (
-                  <Button onClick={() => applyMutation.mutate(project.id)} disabled={applyMutation.isPending}>
-                    Apply Instantly
-                  </Button>
+                  canStudentApplyInstantly ? (
+                    <Button onClick={() => applyMutation.mutate(project.id)} disabled={applyMutation.isPending}>
+                      Apply Instantly
+                    </Button>
+                  ) : (
+                    <Button asChild variant="outline">
+                      <Link href="/dashboard">Complete Verification First</Link>
+                    </Button>
+                  )
                 ) : null}
               </div>
             </CardContent>

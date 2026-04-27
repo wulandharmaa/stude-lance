@@ -76,6 +76,14 @@ export default function Home() {
 
             <div className="glass-panel overflow-hidden p-6">
               <div className="rounded-[24px] bg-[#f4f8f0] p-5">
+                <div className="mb-4 overflow-hidden rounded-2xl border border-[#d7e2d2]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1400&auto=format&fit=crop"
+                    alt="Mahasiswa dan klien berdiskusi proyek"
+                    className="h-40 w-full object-cover"
+                  />
+                </div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary/70">Core Flow</p>
                 <div className="mt-5 space-y-4">
                   {[
@@ -107,6 +115,22 @@ export default function Home() {
           {features.map((feature) => (
             <Card key={feature.title} className="rounded-[28px] border-white/70 shadow-[0_16px_45px_rgba(15,23,42,0.06)]">
               <CardHeader>
+                <div className="overflow-hidden rounded-2xl border border-[#d7e2d2]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`https://images.unsplash.com/${
+                      feature.title === "Manual KTM Verification"
+                        ? "photo-1450101499163-c8848c66ca85"
+                        : feature.title === "Academic-Sync Calendar"
+                          ? "photo-1484480974693-6ca0a78fb36b"
+                          : feature.title === "Micro-Milestone Payment"
+                            ? "photo-1556740738-b6a63e27c4df"
+                            : "photo-1521737604893-d14cc237f11d"
+                    }?q=80&w=1200&auto=format&fit=crop`}
+                    alt={feature.title}
+                    className="h-28 w-full object-cover"
+                  />
+                </div>
                 <div className="flex size-12 items-center justify-center rounded-2xl bg-[#edf6e8] text-primary">
                   <feature.icon className="size-5" />
                 </div>

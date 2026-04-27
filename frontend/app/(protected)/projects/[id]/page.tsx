@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +15,11 @@ import type { ApiResponse } from "@/types/api";
 import type { Project, ProjectFile, ProjectMessage } from "@/types/project";
 import { toast } from "sonner";
 
+function getApiErrorMessage(err: unknown, fallback: string) {
+  const axiosErr = err as AxiosError<{ message?: string }>;
+  return axiosErr?.response?.data?.message || axiosErr?.message || fallback;
+}
+
 const tabs = ["overview", "messages", "files"] as const;
 
 export default function ProjectDetailPage() {
@@ -23,6 +29,7 @@ export default function ProjectDetailPage() {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("overview");
   const [message, setMessage] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [coverUrl, setCoverUrl] = useState("");
 
   const projectQuery = useQuery({
     queryKey: ["project", projectId],
@@ -43,7 +50,7 @@ export default function ProjectDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
     },
     onError: (err: Error) => {
-      toast.error(err.message);
+      toast.error(getApiErrorMessage(err, "Gagal mengirim proposal."));
     },
   });
 
@@ -112,6 +119,23 @@ export default function ProjectDetailPage() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const updateCoverMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiClient.patch<ApiResponse<Project>>(`/api/projects/${projectId}`, {
+        project_image_url: coverUrl || null,
+      });
+      return res.data.data;
+    },
+    onSuccess: () => {
+      toast.success("Cover project diperbarui.");
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+    onError: (err) => {
+      toast.error(getApiErrorMessage(err, "Gagal memperbarui cover project."));
+    },
+  });
+
   const project = projectQuery.data as Project | undefined;
   const canManage = project?.permissions.can_manage_project;
 
@@ -124,9 +148,17 @@ export default function ProjectDetailPage() {
     return <div className="glass-panel p-8 text-center text-sm text-slate-600">Memuat detail project...</div>;
   }
 
+  const currentCoverUrl =
+    project.project_image_url ||
+    "https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1600&auto=format&fit=crop";
+
   return (
     <div className="space-y-6">
       <div className="glass-panel p-6">
+        <div className="mb-5 overflow-hidden rounded-3xl border border-[#d7e2d2]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={currentCoverUrl} alt={project.title} className="h-56 w-full object-cover" />
+        </div>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/70">Collaboration Hub</p>
@@ -150,6 +182,18 @@ export default function ProjectDetailPage() {
             ) : null}
           </div>
         </div>
+        {canManage ? (
+          <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto]">
+            <Input
+              placeholder="Update project cover image URL (opsional)"
+              value={coverUrl}
+              onChange={(e) => setCoverUrl(e.target.value)}
+            />
+            <Button onClick={() => updateCoverMutation.mutate()} disabled={updateCoverMutation.isPending}>
+              Save Cover
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-2">

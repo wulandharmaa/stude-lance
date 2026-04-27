@@ -10,7 +10,8 @@ export async function PATCH(request, { params }) {
     const { authUser, profile } = await requireAuth(request);
     requireAdmin(profile);
 
-    const id = params.id;
+    const resolvedParams = await params;
+    const id = resolvedParams.id;
     if (!isValidUuid(id)) return error('id user tidak valid.', 400);
     if (id === authUser.id) return error('Admin tidak boleh reject akun sendiri.', 409);
 
