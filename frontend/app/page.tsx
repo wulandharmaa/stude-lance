@@ -79,7 +79,7 @@ export default function Home() {
                 <div className="mb-4 overflow-hidden rounded-2xl border border-[#d7e2d2]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1400&auto=format&fit=crop"
+                    src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=1400&auto=format&fit=crop"
                     alt="Mahasiswa dan klien berdiskusi proyek"
                     className="h-40 w-full object-cover"
                   />

@@ -103,6 +103,7 @@ export type Project = {
   student_id: string | null;
   title: string;
   description: string | null;
+  project_image_url?: string | null;
   budget: number;
   city: string | null;
   category: string | null;
