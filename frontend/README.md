@@ -1,3 +1,78 @@
+# StudeLance Frontend
+
+Frontend StudeLance dibangun dengan **Next.js (TypeScript)**, **Tailwind CSS**, dan **shadcn/ui**.
+
+## Scope Frontend
+
+- Landing page & auth flow (login/register/reset)
+- Dashboard role-based (admin, client, student)
+- Project board, detail project, apply flow
+- Calendar UI untuk jadwal akademik/proyek
+- Profile management (termasuk avatar)
+- KTM verification upload/status
+- Milestone/payment simulation UI
+- Chat/project collaboration UI
+
+## Tech Stack
+
+- Next.js (App Router)
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- TanStack Query
+
+## Menjalankan Frontend (Local)
+
+1. Install dependencies
+2. Siapkan `.env.local`
+3. Jalankan dev server
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Default URL: `http://localhost:3000`
+
+## Environment Variables (Frontend)
+
+Contoh minimum:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+## Struktur Utama Frontend
+
+```text
+frontend/
+  app/
+    (protected)/
+      dashboard/
+      projects/
+      calendar/
+      billing/
+      profile/
+    login/
+    register/
+  components/
+    layout/
+    ui/
+    ktm/
+  utils/
+  types/
+```
+
+## Catatan
+
+- UI mengikuti referensi desain pada folder `stitch_studelance_ui_ux_architecture_blueprint`.
+- Semua request data utama diarahkan ke backend BFF.
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

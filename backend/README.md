@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# StudeLance Backend
 
-## Getting Started
+Backend StudeLance dibangun dengan **Next.js API Routes (JavaScript)** dan terhubung ke **Supabase** (Auth, Postgres, Storage).
 
-First, run the development server:
+## Scope Backend
+
+- Authentication & authorization guard
+- Role-based access control (admin/client/student)
+- KTM verification workflow (student submit, admin approve/reject)
+- CRUD proyek, aplikasi proyek, assignment
+- Milestone dan simulasi pembayaran
+- Schedule/calendar API
+- Message/chat API
+- Admin moderation & audit trail
+
+## Menjalankan Backend (Local)
 
 ```bash
+cd backend
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Default URL: `http://localhost:3001`
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Environment Variables (Backend)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Contoh minimum:
 
-## Learn More
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Migrasi Database (Supabase CLI)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Dari folder `backend`:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npx supabase db push
+```
 
-## Deploy on Vercel
+Jika butuh reset lokal:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npx supabase db reset
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Seed Akun Test
+
+Gunakan script seed untuk menyiapkan akun role `admin`, `student`, `client`:
+
+```bash
+node scripts/seed-test-users.js
+```
+
+Lalu cek kredensial default pada file/script seed tersebut.
+
+## Struktur Utama Backend
+
+```text
+backend/
+  app/api/
+    admin/
+    student/
+    projects/
+    milestones/
+    payments/
+    schedules/
+    messages/
+    profile/
+  utils/
+    auth.js
+    authorization.js
+    accessControl.js
+    supabaseAdmin.js
+  supabase/
+    migrations/
+    seed.sql
+```
+
+## API Highlights
+
+- `POST /api/student/verifications`
+- `GET /api/admin/verifications`
+- `POST /api/admin/verifications/:id/approve`
+- `POST /api/admin/verifications/:id/reject`
+- `GET /api/projects`
+- `POST /api/projects`
+- `POST /api/projects/:id/applications`
+- `GET /api/milestones`
+- `POST /api/payments/*`
+- `GET/POST /api/schedules`
+- `GET/POST /api/messages`
