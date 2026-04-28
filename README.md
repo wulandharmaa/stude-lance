@@ -4,6 +4,11 @@ StudeLance adalah platform freelance mahasiswa berbasis **Academic Professionali
 
 ---
 
+## Link Akses
+- **Web (Vercel):** https://stude-lance.vercel.app/
+
+---
+
 ## Core Features
 
 - **Verifikasi Berbasis KTM (Manual Admin Approval):** Sebuah sistem keamanan dan kredibilitas. Mahasiswa mengunggah foto KTM mereka. Tim Admin StudeLance akan memverifikasi secara manual. Tanpa persetujuan ini, mahasiswa tidak bisa melamar pekerjaan.
