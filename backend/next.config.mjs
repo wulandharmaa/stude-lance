@@ -1,14 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
+    // Gunakan Environment Variable agar dinamis. 
+    // Jika di Vercel akan membaca FRONTEND_URL, jika di laptop (local) akan pakai localhost.
+    const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:3000";
+
     return [
       {
         // Terapkan CORS ke semua endpoint API
         source: "/api/:path*",
         headers: [
           { key: "Access-Control-Allow-Credentials", value: "true" },
-          // Izinkan akses spesifik dari Frontend kamu (Port 3000)
-          { key: "Access-Control-Allow-Origin", value: "http://localhost:3000" }, 
+          // Izinkan akses dinamis (Production vs Local)
+          { key: "Access-Control-Allow-Origin", value: allowedOrigin }, 
           // Izinkan metode HTTP yang dibutuhkan
           { key: "Access-Control-Allow-Methods", value: "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
           // Izinkan header yang biasa dikirim oleh Axios/Frontend
